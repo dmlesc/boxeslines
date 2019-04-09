@@ -17,7 +17,7 @@ var group_move = false
 
 window.onclick = (event) => {
   console.log('window click', event)
-  processClick(event)
+  process_click(event)
 }
 
 window.onkeydown = (event) => {
@@ -49,14 +49,14 @@ function init () {
     fabric.Group.prototype.padding = 5
     canvas = new fabric.Canvas('board')
     canvas.on('object:moving', (event) => {
-      processMove(event.target)
+      process_move(event.target)
     })
   } else {
     document.body.innerHTML = 'you must use chrome'
   }
 }
 
-function processMove (obj) {
+function process_move (obj) {
   // console.log(obj)
 
   var o_center_x = obj.left + (obj.aCoords.tr.x - obj.aCoords.tl.x) / 2
@@ -94,9 +94,9 @@ function processMove (obj) {
         var line = o.lines[j]
 
         if (line.position === 'begin') {
-          moveLine(line.line, { 'x1': x, 'y1': y })
+          move_line(line.line, { 'x1': x, 'y1': y })
         } else if (line.position === 'end') {
-          moveLine(line.line, { 'x2': x, 'y2': y })
+          move_line(line.line, { 'x2': x, 'y2': y })
         }
       }
     }
@@ -105,7 +105,7 @@ function processMove (obj) {
   canvas.renderAll()
 }
 
-function moveLine (line, coor) {
+function move_line (line, coor) {
   line.set(coor)
 }
 
@@ -131,7 +131,7 @@ function select (op) {
   not_op.style.border = 'none'
 }
 
-function processClick (event) {
+function process_click (event) {
   var activeObject = canvas.getActiveObject()
 
   if (activeObject === undefined) {
@@ -140,14 +140,14 @@ function processClick (event) {
     var inside = (x > sidenav_width && x < board_width + sidenav_width && y < board_height + 10)
 
     if (inside && selected_op === 'box') {
-      createBox(x, y)
+      create_box(x, y)
     }
   } else if (selected_op === 'line' && !group_move && activeObject._objects && activeObject._objects.length === 2) {
     var objs = activeObject._objects
-    var zero_center = getCenter(objs[0].aCoords)
-    var one_center = getCenter(objs[1].aCoords)
+    var zero_center = get_center(objs[0].aCoords)
+    var one_center = get_center(objs[1].aCoords)
 
-    var line = createLine([zero_center.x, zero_center.y, one_center.x, one_center.y])
+    var line = create_line([zero_center.x, zero_center.y, one_center.x, one_center.y])
 
     objs[0].lines.push({ position: 'begin', line: line })
     objs[1].lines.push({ position: 'end', line: line })
@@ -156,7 +156,7 @@ function processClick (event) {
   }
 }
 
-function createBox (X, Y) {
+function create_box (X, Y) {
   var x_offset = sidenav_width + sidenav_width / 2
   var y_offset = box_height / 2
 
@@ -178,7 +178,7 @@ function createBox (X, Y) {
   canvas.add(rect)
 }
 
-function createLine (coords) {
+function create_line (coords) {
   console.log(coords)
 
   var line = new fabric.Line(coords, {
@@ -191,7 +191,7 @@ function createLine (coords) {
   return line
 }
 
-function getCenter (aCoords) {
+function get_center (aCoords) {
   var x = ((aCoords.br.x - aCoords.bl.x) / 2) + aCoords.bl.x
   var y = ((aCoords.bl.y - aCoords.tl.y) / 2) + aCoords.tl.y
 
