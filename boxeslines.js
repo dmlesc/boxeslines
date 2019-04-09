@@ -41,7 +41,7 @@ window.onkeyup = (event) => {
 function init () {
   if (/chrome/i.test(navigator.userAgent)) {
     console.log('using chrome')
-    var board = getID('board')
+    var board = get_id('board')
     board.setAttribute('width', board_width)
     board.setAttribute('height', board_height)
 
@@ -114,16 +114,16 @@ function select (op) {
 
   if (op === selected_op) {
     selected_op = ''
-    not_op = getID(op)
+    not_op = get_id(op)
   } else {
     selected_op = op
 
-    getID(op).style.color = selected_color
-    getID(op).style.border = 'thin solid white'
+    get_id(op).style.color = selected_color
+    get_id(op).style.border = 'thin solid white'
     if (op === 'box') {
-      not_op = getID('line')
+      not_op = get_id('line')
     } else {
-      not_op = getID('box')
+      not_op = get_id('box')
     }
   }
 
@@ -198,7 +198,7 @@ function get_center (aCoords) {
   return { x: x, y: y }
 }
 
-function getID (id) {
+function get_id (id) {
   return document.getElementById(id)
 }
 
