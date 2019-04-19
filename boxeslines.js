@@ -6,7 +6,7 @@ var sidenav_width = 63
 var board_width = 1000
 var board_height = 700
 var box_width = 70
-var box_height = 35
+var box_height = 70
 var rect_padding = 3
 
 var selected_op = ''
@@ -14,34 +14,41 @@ var selected_color = '#009bd5'
 var unselected_color = '#818181'
 
 var group_move = false
+var label_mode = false
+
 
 window.onclick = (event) => {
-  console.log('window click', event)
+  console.log('window click:', event)
   process_click(event)
 }
 
 window.onkeydown = (event) => {
-  if (event.keyCode === 16) { // "shift"
-    console.log('shift down')
-  } else {
-    var letter = String.fromCharCode(event.keyCode)
-    console.log(letter, 'down')
-  }
+  console.log('onkeydown')
+
+  var kc = get_kc(event.keyCode)
+
 }
 
 window.onkeyup = (event) => {
-  if (event.keyCode === 16) { // "shift"
-    console.log('shift up')
-  } else {
-    var letter = String.fromCharCode(event.keyCode)
-    console.log(letter, 'up')
+  console.log('onkeyup')
+
+  var kc = get_kc(event.keyCode)
+
+  if (label_mode) {
+    
+  }
+  else if (kc === 'esc') {
+    var active_obj = get_ao()
+    console.log(active_obj.label) 
+
+    label_mode = true
   }
 }
 
 function init () {
   if (/chrome/i.test(navigator.userAgent)) {
     console.log('using chrome')
-    var board = get_id('board')
+    board = get_id('board')
     board.setAttribute('width', board_width)
     board.setAttribute('height', board_height)
 
@@ -70,7 +77,8 @@ function process_move (obj) {
     })
 
     group_move = true
-  } else {
+  }
+  else {
     objs.push(obj)
     group_move = false
   }
@@ -94,19 +102,22 @@ function process_move (obj) {
         var line = o.lines[j]
 
         if (line.position === 'begin') {
-          move_line(line.line, { 'x1': x, 'y1': y })
-        } else if (line.position === 'end') {
-          move_line(line.line, { 'x2': x, 'y2': y })
+          line.line.set({ 'x1': x, 'y1': y })
+        }
+        else if (line.position === 'end') {
+          line.line.set({ 'x2': x, 'y2': y })
         }
       }
+    }
+
+    if (o.label) {
+      var l = o.label
+      // console.log(l.top, l.left)
+      l.set( {'left': o_center_x, 'top': o_center_y })
     }
   }
 
   canvas.renderAll()
-}
-
-function move_line (line, coor) {
-  line.set(coor)
 }
 
 function select (op) {
@@ -132,27 +143,30 @@ function select (op) {
 }
 
 function process_click (event) {
-  var activeObject = canvas.getActiveObject()
+  var active_obj = get_ao()
 
-  if (activeObject === undefined) {
+  if (selected_op === 'box' && !active_obj) {
     var x = event.clientX
     var y = event.clientY
     var inside = (x > sidenav_width && x < board_width + sidenav_width && y < board_height + 10)
 
-    if (inside && selected_op === 'box') {
+    if (inside) {
       create_box(x, y)
     }
-  } else if (selected_op === 'line' && !group_move && activeObject._objects && activeObject._objects.length === 2) {
-    var objs = activeObject._objects
-    var zero_center = get_center(objs[0].aCoords)
-    var one_center = get_center(objs[1].aCoords)
-
-    var line = create_line([zero_center.x, zero_center.y, one_center.x, one_center.y])
-
-    objs[0].lines.push({ position: 'begin', line: line })
-    objs[1].lines.push({ position: 'end', line: line })
-    canvas.add(line)
-    canvas.sendToBack(line)
+  }
+  else if (selected_op === 'line' && active_obj) {
+    if (!group_move && active_obj._objects !== undefined && active_obj._objects.length === 2) {
+      var objs = active_obj._objects
+      var zero_center = get_center(objs[0].aCoords)
+      var one_center = get_center(objs[1].aCoords)
+  
+      var line = create_line([zero_center.x, zero_center.y, one_center.x, one_center.y])
+  
+      objs[0].lines.push({ position: 'begin', line: line })
+      objs[1].lines.push({ position: 'end', line: line })
+      canvas.add(line)
+      canvas.sendToBack(line)
+    }
   }
 }
 
@@ -175,12 +189,20 @@ function create_box (X, Y) {
 
   rect.lines = []
 
+  var text = new fabric.Text('text', {
+    left: X, 
+    top: Y,
+    fill: 'white'
+  })  
+  
+  rect.label = text
+
   canvas.add(rect)
+  canvas.add(text);
+  canvas.setActiveObject(rect)
 }
 
 function create_line (coords) {
-  console.log(coords)
-
   var line = new fabric.Line(coords, {
     strokeWidth: 2,
     stroke: 'white',
@@ -198,10 +220,38 @@ function get_center (aCoords) {
   return { x: x, y: y }
 }
 
+function get_ao () {
+  var ao = canvas.getActiveObject()
+  console.log('ao:', ao)
+
+  if (ao === undefined || ao === null) {
+    ao = false
+  }
+
+  return ao
+}
+
+function get_kc (keyCode) {
+  var letter
+
+  if (keyCode === 16) {
+    letter = 'shift'
+  }
+  else if (keyCode === 27) {
+    letter = 'esc'
+  }
+  else {
+    letter = String.fromCharCode(event.keyCode)
+  }
+
+  console.log('letter:', letter)
+
+  return letter
+}
+
 function get_id (id) {
   return document.getElementById(id)
 }
 
-/*
-  console.log('src:', event.srcElement.id)
-*/
+
+// console.log('src:', event.srcElement.id)
