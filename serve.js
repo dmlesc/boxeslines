@@ -44,4 +44,5 @@ function sendResponse (code, contenttype, data, res) {
 }
 
 server.listen(port, ip)
+console.log('listen:', ip + ':' + port)
 console.log('ready to serve')

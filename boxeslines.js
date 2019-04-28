@@ -8,6 +8,8 @@ var board_height = 700
 var box_width = 70
 var box_height = 70
 var rect_padding = 3
+var x_offset = sidenav_width + sidenav_width / 2
+var y_offset = box_height / 2
 
 var selected_op = ''
 var selected_color = '#009bd5'
@@ -26,7 +28,6 @@ window.onkeydown = (event) => {
   console.log('onkeydown')
 
   var kc = get_kc(event.keyCode)
-
 }
 
 window.onkeyup = (event) => {
@@ -52,6 +53,7 @@ function init () {
     board.setAttribute('width', board_width)
     board.setAttribute('height', board_height)
 
+    // console.log(fabric.version)
     fabric.Group.prototype.hasControls = false
     fabric.Group.prototype.padding = 5
     canvas = new fabric.Canvas('board')
@@ -91,8 +93,8 @@ function process_move (obj) {
       var top = o.top
 
       if (group_move) {
-        left = o_center_x + left
-        top = o_center_y + top
+        left += o_center_x
+        top += o_center_y
       }
 
       var x = left + (o.width / 2)
@@ -111,9 +113,20 @@ function process_move (obj) {
     }
 
     if (o.label) {
-      var l = o.label
-      // console.log(l.top, l.left)
-      l.set( {'left': o_center_x, 'top': o_center_y })
+      var label = o.label
+      var left = o.left
+      var top = o.top
+      var text_center_x = left + (o.aCoords.tr.x - o.aCoords.tl.x) / 2
+
+      left = text_center_x - (label.text.length / 2) * 10
+      top = top + 25
+
+      if (group_move) {
+        left += o_center_x
+        top += o_center_y
+      }
+
+      label.set( {'left': left, 'top': top })
     }
   }
 
@@ -131,6 +144,7 @@ function select (op) {
 
     get_id(op).style.color = selected_color
     get_id(op).style.border = 'thin solid white'
+    
     if (op === 'box') {
       not_op = get_id('line')
     } else {
@@ -140,6 +154,9 @@ function select (op) {
 
   not_op.style.color = unselected_color
   not_op.style.border = 'none'
+
+  canvas.discardActiveObject();
+  canvas.renderAll()
 }
 
 function process_click (event) {
@@ -171,12 +188,12 @@ function process_click (event) {
 }
 
 function create_box (X, Y) {
-  var x_offset = sidenav_width + sidenav_width / 2
-  var y_offset = box_height / 2
+  var left = X - x_offset
+  var top = Y - y_offset
 
   var rect = new fabric.Rect({
-    left: X - x_offset,
-    top: Y - y_offset,
+    left: left,
+    top: top,
     fill: 'black',
     width: box_width,
     height: box_height,
@@ -189,17 +206,26 @@ function create_box (X, Y) {
 
   rect.lines = []
 
-  var text = new fabric.Text('text', {
-    left: X, 
-    top: Y,
-    fill: 'white'
+  var label_text = 'text'
+
+  var text_center_x = left + box_width / 2
+  left = text_center_x - (label_text.length / 2) * 10
+  top += 25
+
+  var label = new fabric.Text(label_text, {
+    left: left, 
+    top: top,
+    fill: 'white',
+    hasControls: false,
+    selectable: false,
+    fontFamily: 'monospace',
+    fontSize: 16
   })  
   
-  rect.label = text
+  rect.label = label
 
   canvas.add(rect)
-  canvas.add(text);
-  canvas.setActiveObject(rect)
+  canvas.add(label)
 }
 
 function create_line (coords) {
@@ -255,3 +281,6 @@ function get_id (id) {
 
 
 // console.log('src:', event.srcElement.id)
+// canvas.sendBackwards(text)
+// canvas.setActiveObject(rect)
+// canvas.discardActiveObject();
