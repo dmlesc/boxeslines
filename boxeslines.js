@@ -27,22 +27,30 @@ window.onclick = (event) => {
 window.onkeydown = (event) => {
   console.log('onkeydown')
 
-  var kc = get_kc(event.keyCode)
+  var char = get_char(event.keyCode)
 }
 
 window.onkeyup = (event) => {
   console.log('onkeyup')
 
-  var kc = get_kc(event.keyCode)
+  var char = get_char(event.keyCode)
 
   if (label_mode) {
-    
+    if (char === 'ESC') {
+      label_mode = false
+      console.log('label_mode = false')
+      canvas.discardActiveObject()
+      canvas.renderAll()
+    }
+    else {
+      add_char_to_label(get_ao(), char)
+    }
   }
-  else if (kc === 'esc') {
-    var active_obj = get_ao()
-    console.log(active_obj.label) 
-
-    label_mode = true
+  else if (char === 'ESC') {
+    if (get_ao()) {
+      label_mode = true
+      console.log('label_mode = true')
+    }
   }
 }
 
@@ -62,6 +70,62 @@ function init () {
     })
   } else {
     document.body.innerHTML = 'you must use chrome'
+  }
+}
+
+function select (op) {
+  var not_op
+
+  if (op === selected_op) {
+    selected_op = ''
+    not_op = get_id(op)
+  } else {
+    selected_op = op
+
+    get_id(op).style.color = selected_color
+    get_id(op).style.border = 'thin solid white'
+    
+    if (op === 'box') {
+      not_op = get_id('line')
+    } else {
+      not_op = get_id('box')
+    }
+  }
+
+  not_op.style.color = unselected_color
+  not_op.style.border = 'none'
+
+  canvas.discardActiveObject();
+  canvas.renderAll()
+}
+
+function process_click (event) {
+  label_mode = false
+
+  var active_obj = get_ao()
+
+  if (selected_op === 'box' && !active_obj) {
+    var x = event.clientX
+    var y = event.clientY
+    var inside = (x > sidenav_width && x < board_width + sidenav_width && y < board_height + 10)
+
+    if (inside) {
+      create_box(x, y)
+    }
+  }
+  else if (selected_op === 'line' && active_obj) {
+    if (!group_move && active_obj._objects !== undefined && active_obj._objects.length === 2) {
+      var objs = active_obj._objects
+      var zero_center = get_center(objs[0].aCoords)
+      var one_center = get_center(objs[1].aCoords)
+  
+      var line = create_line([zero_center.x, zero_center.y, one_center.x, one_center.y])
+  
+      objs[0].lines.push({ position: 'begin', line: line })
+      objs[1].lines.push({ position: 'end', line: line })
+      canvas.add(line)
+      canvas.sendToBack(line)
+    }
   }
 }
 
@@ -112,79 +176,11 @@ function process_move (obj) {
       }
     }
 
-    if (o.label) {
-      var label = o.label
-      var left = o.left
-      var top = o.top
-      var text_center_x = left + (o.aCoords.tr.x - o.aCoords.tl.x) / 2
-
-      left = text_center_x - (label.text.length / 2) * 10
-      top = top + 25
-
-      if (group_move) {
-        left += o_center_x
-        top += o_center_y
-      }
-
-      label.set( {'left': left, 'top': top })
-    }
+    set_label_location(o, o_center_x, o_center_y)
   }
 
+  group_move = false
   canvas.renderAll()
-}
-
-function select (op) {
-  var not_op
-
-  if (op === selected_op) {
-    selected_op = ''
-    not_op = get_id(op)
-  } else {
-    selected_op = op
-
-    get_id(op).style.color = selected_color
-    get_id(op).style.border = 'thin solid white'
-    
-    if (op === 'box') {
-      not_op = get_id('line')
-    } else {
-      not_op = get_id('box')
-    }
-  }
-
-  not_op.style.color = unselected_color
-  not_op.style.border = 'none'
-
-  canvas.discardActiveObject();
-  canvas.renderAll()
-}
-
-function process_click (event) {
-  var active_obj = get_ao()
-
-  if (selected_op === 'box' && !active_obj) {
-    var x = event.clientX
-    var y = event.clientY
-    var inside = (x > sidenav_width && x < board_width + sidenav_width && y < board_height + 10)
-
-    if (inside) {
-      create_box(x, y)
-    }
-  }
-  else if (selected_op === 'line' && active_obj) {
-    if (!group_move && active_obj._objects !== undefined && active_obj._objects.length === 2) {
-      var objs = active_obj._objects
-      var zero_center = get_center(objs[0].aCoords)
-      var one_center = get_center(objs[1].aCoords)
-  
-      var line = create_line([zero_center.x, zero_center.y, one_center.x, one_center.y])
-  
-      objs[0].lines.push({ position: 'begin', line: line })
-      objs[1].lines.push({ position: 'end', line: line })
-      canvas.add(line)
-      canvas.sendToBack(line)
-    }
-  }
 }
 
 function create_box (X, Y) {
@@ -206,7 +202,7 @@ function create_box (X, Y) {
 
   rect.lines = []
 
-  var label_text = 'text'
+  var label_text = ''
 
   var text_center_x = left + box_width / 2
   left = text_center_x - (label_text.length / 2) * 10
@@ -226,6 +222,7 @@ function create_box (X, Y) {
 
   canvas.add(rect)
   canvas.add(label)
+  canvas.setActiveObject(rect)
 }
 
 function create_line (coords) {
@@ -257,30 +254,59 @@ function get_ao () {
   return ao
 }
 
-function get_kc (keyCode) {
-  var letter
+function get_char (code) {
+  var char
 
-  if (keyCode === 16) {
-    letter = 'shift'
+  if (code === 16) {
+    // char = 'shift'
+    char = ''
   }
-  else if (keyCode === 27) {
-    letter = 'esc'
+  else if (code === 27) {
+    char = 'ESC'
+  }
+  else if (!(code > 47 && code < 58) &&  // numeric (0-9)
+           !(code > 64 && code < 91) &&  // upper alpha (A-Z)
+           !(code > 96 && code < 123)) { // lower alpha (a-z)
+    char = ''
   }
   else {
-    letter = String.fromCharCode(event.keyCode)
+    char = String.fromCharCode(code)
   }
 
-  console.log('letter:', letter)
+  console.log('char:', char)
 
-  return letter
+  return char
 }
 
 function get_id (id) {
   return document.getElementById(id)
 }
 
+function set_label_location(o, x, y) {
+  var label = o.label
+  var left = o.left
+  var top = o.top
+  var text_center_x = left + (o.aCoords.tr.x - o.aCoords.tl.x) / 2
+
+  left = text_center_x - (label.text.length / 2) * 10
+  top = top + 25
+
+  if (group_move) {
+    left += x
+    top += y
+  }
+
+  label.set( {'left': left, 'top': top })
+}
+
+function add_char_to_label(ao, char) {
+  ao.label.text += char
+  set_label_location(ao)
+  canvas.renderAll()
+}
+
 
 // console.log('src:', event.srcElement.id)
 // canvas.sendBackwards(text)
 // canvas.setActiveObject(rect)
-// canvas.discardActiveObject();
+// canvas.discardActiveObject()
