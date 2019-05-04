@@ -20,38 +20,17 @@ var label_mode = false
 
 
 window.onclick = (event) => {
-  console.log('window click:', event)
+  // console.log('click:', event)
   process_click(event)
 }
 
 window.onkeydown = (event) => {
-  console.log('onkeydown')
-
-  var char = get_char(event.keyCode)
+  // console.log('onkeydown:', event)
 }
 
 window.onkeyup = (event) => {
-  console.log('onkeyup')
-
-  var char = get_char(event.keyCode)
-
-  if (label_mode) {
-    if (char === 'ESC') {
-      label_mode = false
-      console.log('label_mode = false')
-      canvas.discardActiveObject()
-      canvas.renderAll()
-    }
-    else {
-      add_char_to_label(get_ao(), char)
-    }
-  }
-  else if (char === 'ESC') {
-    if (get_ao()) {
-      label_mode = true
-      console.log('label_mode = true')
-    }
-  }
+  // console.log('onkeyup:', event)
+  process_keyup(event)
 }
 
 function init () {
@@ -97,6 +76,26 @@ function select (op) {
 
   canvas.discardActiveObject();
   canvas.renderAll()
+}
+
+function process_keyup (evt) {
+  var char = get_char(evt.keyCode)
+
+  if (label_mode) {
+    if (char === 'ESC' || char === 'RETURN') {
+      set_mode('label', 'off')
+      canvas.discardActiveObject()
+      canvas.renderAll()
+    }
+    else {
+      add_char_to_label(get_ao(), char)
+    }
+  }
+  else if (char === 'ESC') {
+    if (get_ao()) {
+      set_mode('label', 'on')
+    }
+  }
 }
 
 function process_click (event) {
@@ -223,6 +222,7 @@ function create_box (X, Y) {
   canvas.add(rect)
   canvas.add(label)
   canvas.setActiveObject(rect)
+  set_mode('label', 'on')
 }
 
 function create_line (coords) {
@@ -264,6 +264,12 @@ function get_char (code) {
   else if (code === 27) {
     char = 'ESC'
   }
+  else if (code === 13) {
+    char = 'RETURN'
+  }
+  else if (code === 8) {
+    char = 'BACKSPACE'
+  }
   else if (!(code > 47 && code < 58) &&  // numeric (0-9)
            !(code > 64 && code < 91) &&  // upper alpha (A-Z)
            !(code > 96 && code < 123)) { // lower alpha (a-z)
@@ -299,12 +305,33 @@ function set_label_location(o, x, y) {
   label.set( {'left': left, 'top': top })
 }
 
-function add_char_to_label(ao, char) {
-  ao.label.text += char
-  set_label_location(ao)
+function add_char_to_label(o, char) {
+  if (char === 'BACKSPACE') {
+    o.label.text = o.label.text.slice(0, -1)
+  }
+  else {
+    o.label.text += char
+  }
+  set_label_location(o)
   canvas.renderAll()
 }
 
+function set_mode (mode, state) {
+  var value
+
+  if (state === 'on') {
+    value = true
+  }
+  else {
+    value = false
+  }
+
+  if (mode === 'label') {
+    label_mode = value
+  }
+  
+  console.log(mode, 'mode:', state)
+}
 
 // console.log('src:', event.srcElement.id)
 // canvas.sendBackwards(text)
